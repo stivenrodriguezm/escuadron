@@ -62,6 +62,13 @@ En el dashboard pulsa **Iniciar** para que el escuadrón empiece a operar. **Aju
 ./start.sh uninstall-service
 ```
 
+Para entrar desde el móvil o cualquier dispositivo, publícalo con [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) (gratis, HTTPS, dirección fija `https://<equipo>.<tailnet>.ts.net`, sin abrir puertos del router). Antes define `API_TOKEN` en `.env`:
+
+```bash
+/Applications/Tailscale.app/Contents/MacOS/Tailscale funnel --bg 8000    # publicar
+/Applications/Tailscale.app/Contents/MacOS/Tailscale funnel --bg off     # dejar de publicar
+```
+
 Usa launchd. Los logs del servicio están en `~/Library/Logs/Escuadron/server.log`. macOS no permite que los servicios en segundo plano lean el Escritorio, Documentos ni Descargas, así que el proyecto debe estar fuera de esas carpetas (por ejemplo `~/escuadron`). Cerrar la tapa de un portátil lo duerme igualmente.
 
 ## Servidor 24/7 (Oracle Cloud Always Free)

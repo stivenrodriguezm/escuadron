@@ -39,6 +39,15 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io docker-comp
 sudo systemctl enable --now docker >/dev/null
 sudo usermod -aG docker "$USER" || true
 
+# Servidores pequeños (p. ej. VM.Standard.E2.1.Micro, 1 GB): swap para compilar la imagen sin quedarse sin memoria
+mem_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [ "$mem_mb" -lt 2048 ] && ! swapon --show | grep -q /swapfile; then
+  echo "Memoria baja (${mem_mb} MB): creando 2 GB de swap."
+  sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+  sudo mkswap /swapfile >/dev/null && sudo swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+fi
+
 say "3/6 Abriendo los puertos 80 y 443 en el firewall del sistema"
 # Las imágenes Ubuntu de Oracle traen iptables con una regla REJECT al final de INPUT.
 for port in 80 443; do

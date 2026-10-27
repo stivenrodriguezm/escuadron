@@ -219,6 +219,10 @@ El agente de código debe implementar estas ecuaciones exactas en el módulo `ba
 | `frontend/src/hooks/*` | Datos | `useTelemetry` (WS con reconexión), `useEquityCurve`, `api` | ✅ |
 | `frontend/src/views/*` | Vistas | `DashboardView`, `AgentsView`, `LedgerView`, `BacktestView`, `SettingsView` | ✅ |
 | `frontend/src/types/index.ts` | Tipos TS estrictos | Interfaces de todos los payloads | ✅ |
+| `backend/api/auth.py` | Token de acceso | `require_token` (Bearer en REST), `websocket_authorized` (`?token=`), `WS_UNAUTHORIZED=4401`; sin `API_TOKEN` no exige nada | ✅ |
+| `docker-compose.prod.yml`, `deploy/Caddyfile` | Producción | Motor + Caddy (HTTPS Let's Encrypt, dominio `<ip>.sslip.io`), `REQUIRE_API_TOKEN=1` | ✅ |
+| `deploy/setup-oracle.sh`, `deploy/migrate-data.sh`, `deploy/ORACLE.md` | Despliegue en Oracle Cloud Always Free | Instalación idempotente en el servidor y migración de `data/` desde el Mac | ✅ |
+| `.github/workflows/ci.yml`, `pages.yml` | CI/CD | Tests + imagen Docker ARM64 con prueba de humo; dashboard en GitHub Pages | ✅ |
 | `start.sh`, `Dockerfile`, `docker-compose.yml` | Arranque | `start|stop|status|dev|test` | ✅ |
 
 ### 8.3 Registro de Decisiones Técnicas y Optimización del Agente
@@ -238,4 +242,5 @@ El agente de código debe implementar estas ecuaciones exactas en el módulo `ba
 - **[Calibración con validación fuera de muestra — 2026-10-27]:** 6 pares × {15m, 1h, 4h} × 210 combinaciones (umbral, SL, TP). Selección en 2025-04→2026-04 por Sharpe robusto (mediana de celdas vecinas), validación en 2026-04→2026-10 y en 2024-04→2025-04. 15m: pierde en todos los pares. Con break-even a 1.5R: media fuera de muestra +7.5 %, 2/12 pasan las 3 pruebas; sin break-even: +21.9 %, 4/12. Elegidos (ganan en los 3 periodos): DOGE 4h (85, 1.5, 8.0), XRP 4h (60, 1.0, 5.0), SOL 1h (75, 3.0, 8.0). Descartado BNB 1h (win 14 %, DD 34–45 %). Sesgo de selección: 3 de 18 combinaciones; la expectativa real probablemente es menor que la del backtest.
 - **[Riesgo — 2026-10-27]:** `MAX_RISK_PER_TRADE=1%` (antes 1.5 %), `MAX_PORTFOLIO_RISK=3%` (una posición por par), `BREAKEVEN_R=0`. Cartera simulada fuera de muestra (80 semanas): media +0.79 %/semana, mediana ≈ 0 %, 48 % semanas positivas, p10 −4.8 %, p90 +7.4 %, drawdown máx 15–18 % (26 % en entrenamiento). Rendimiento sesgado: pocas semanas muy buenas compensan muchas planas o negativas.
 - **[Pendiente de validar]:** el filtro HOLD de Gemini no está en el backtest (coste de tokens); en una estrategia con 15–35 % de aciertos puede filtrar los pocos ganadores grandes. El límite de pérdida diaria a nivel cartera tampoco se modela en la simulación conjunta.
+- **[Despliegue — 2026-10-27]:** Servidor objetivo: Oracle Cloud Always Free (Ampere A1, Ubuntu 24.04, ARM64). La API exige token cuando `API_TOKEN` está definido (en producción es obligatorio, `REQUIRE_API_TOKEN=1`). El dashboard (servido por el motor o desde GitHub Pages) pide el token y lo guarda en el navegador. `start.sh` escucha solo en 127.0.0.1. La imagen ARM64 se valida en CI porque no hay Docker en el Mac de desarrollo.
 

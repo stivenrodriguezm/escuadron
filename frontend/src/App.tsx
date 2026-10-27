@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ConnectScreen } from "./components/ConnectScreen";
 import { Layout } from "./components/Layout";
 import { api } from "./hooks/api";
 import { useTelemetry } from "./hooks/useTelemetry";
@@ -12,7 +13,7 @@ import { SettingsView } from "./views/SettingsView";
 export default function App() {
   const [view, setView] = useState<ViewKey>("dashboard");
   const telemetry = useTelemetry();
-  const { data, socketOpen } = telemetry;
+  const { data, socketOpen, authRequired } = telemetry;
 
   const toggle = async (action: "START" | "PAUSE" | "KILL_SWITCH") => {
     try {
@@ -21,6 +22,8 @@ export default function App() {
       window.alert(e instanceof Error ? e.message : "No se pudo cambiar el estado del motor");
     }
   };
+
+  if (authRequired) return <ConnectScreen authRequired />;
 
   return (
     <Layout

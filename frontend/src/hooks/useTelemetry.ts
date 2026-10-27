@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ConsensusLog, TelemetryMessage } from "../types";
-import { telemetryUrl } from "./backend";
+import { AUTH_EVENT, telemetryUrl } from "./backend";
+
+const WS_UNAUTHORIZED = 4401;
 
 const MAX_LOGS = 300;
 
@@ -8,6 +10,7 @@ export interface TelemetryState {
   data: TelemetryMessage | null;
   logs: ConsensusLog[];
   socketOpen: boolean;
+  authRequired: boolean;
 }
 
 /** WebSocket unificado /ws/telemetry con reconexión automática. */
@@ -15,6 +18,7 @@ export function useTelemetry(): TelemetryState {
   const [data, setData] = useState<TelemetryMessage | null>(null);
   const [logs, setLogs] = useState<ConsensusLog[]>([]);
   const [socketOpen, setSocketOpen] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
   const retry = useRef(1000);
 
   useEffect(() => {
@@ -39,21 +43,28 @@ export function useTelemetry(): TelemetryState {
           });
         }
       };
-      ws.onclose = () => {
+      ws.onclose = (ev: CloseEvent) => {
         setSocketOpen(false);
+        if (ev.code === WS_UNAUTHORIZED) {
+          setAuthRequired(true);  // sin token válido no tiene sentido reintentar
+          return;
+        }
         if (!disposed) {
           timer = setTimeout(connect, retry.current);
           retry.current = Math.min(retry.current * 2, 15000);
         }
       };
     };
+    const onAuth = () => setAuthRequired(true);
+    window.addEventListener(AUTH_EVENT, onAuth);
     connect();
     return () => {
       disposed = true;
+      window.removeEventListener(AUTH_EVENT, onAuth);
       if (timer) clearTimeout(timer);
       ws?.close();
     };
   }, []);
 
-  return { data, logs, socketOpen };
+  return { data, logs, socketOpen, authRequired };
 }

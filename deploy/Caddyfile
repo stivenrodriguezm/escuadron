@@ -1,0 +1,10 @@
+# HTTPS automático (Let's Encrypt) delante del motor. DOMAIN viene de .env.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:8000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}

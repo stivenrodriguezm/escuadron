@@ -1,4 +1,4 @@
-import { backendBase } from "./backend";
+import { AUTH_EVENT, backendBase, getToken } from "./backend";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -7,10 +7,16 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${backendBase()}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
+  if (res.status === 401) window.dispatchEvent(new Event(AUTH_EVENT));
   if (!res.ok) {
     let detail = res.statusText;
     try {

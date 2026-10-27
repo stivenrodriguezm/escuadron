@@ -6,12 +6,13 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import select
 
+from backend.api.auth import WS_UNAUTHORIZED, require_token, websocket_authorized
 from backend.api.serializers import iso, log_row, portfolio_payload, telemetry_payload
 from backend.core.config import ROOT_DIR, get_settings
 from backend.core.database import atomic, get_engine
@@ -29,6 +30,11 @@ engine: TradingEngine | None = None
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     global engine
+    cfg = get_settings()
+    if cfg.require_api_token and not cfg.api_token:
+        raise RuntimeError("REQUIRE_API_TOKEN=1 pero API_TOKEN está vacío: no se expone la API sin contraseña")
+    if not cfg.api_token:
+        logging.getLogger("api").warning("API sin token: usar solo en 127.0.0.1")
     get_engine()
     with atomic() as s:
         cm.get_portfolio(s)
@@ -44,18 +50,22 @@ app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, al
                    allow_headers=["*"], allow_private_network=True)
 
 
+# Todas las rutas /api exigen el token (si API_TOKEN está definido)
+api = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
+
+
 def eng() -> TradingEngine:
     if engine is None:
         raise HTTPException(503, "Motor no inicializado")
     return engine
 
 
-@app.get("/api/portfolio")
+@api.get("/portfolio")
 def get_portfolio():
     return portfolio_payload(eng())
 
 
-@app.post("/api/capital")
+@api.post("/capital")
 async def update_capital(body: CapitalUpdate):
     e = eng()
     if body.mode == "RESET":
@@ -69,24 +79,24 @@ async def update_capital(body: CapitalUpdate):
     return portfolio_payload(e)
 
 
-@app.post("/api/engine/toggle")
+@api.post("/engine/toggle")
 async def toggle_engine(body: EngineToggle):
     return {"message": await eng().toggle(body.action), "running": eng().running}
 
 
-@app.post("/api/backtest/run")
+@api.post("/backtest/run")
 async def run_backtest(body: BacktestRequest):
     return calibration.launch(body).model_dump(mode="json")
 
 
-@app.get("/api/backtest")
+@api.get("/backtest")
 def list_backtests():
     jobs = sorted(calibration.JOBS.values(), key=lambda j: j.started_at, reverse=True)
     return [j.model_dump(mode="json", exclude={"results"}) | {"best": j.results[0].model_dump() if j.results else None}
             for j in jobs]
 
 
-@app.get("/api/backtest/{job_id}")
+@api.get("/backtest/{job_id}")
 def get_backtest(job_id: str):
     job = calibration.JOBS.get(job_id)
     if job is None:
@@ -94,20 +104,20 @@ def get_backtest(job_id: str):
     return job.model_dump(mode="json")
 
 
-@app.post("/api/backtest/apply")
+@api.post("/backtest/apply")
 async def apply_strategy(body: StrategyUpdate):
     await eng().apply_strategy(body)
     return body
 
 
-@app.get("/api/trades")
+@api.get("/trades")
 def get_trades(limit: int = 200):
     with atomic() as s:
         rows = s.exec(select(TradeHistory).order_by(TradeHistory.id.desc()).limit(limit)).all()
     return [r.model_dump(mode="json") | {"opened_at": iso(r.opened_at), "closed_at": iso(r.closed_at)} for r in rows]
 
 
-@app.get("/api/equity")
+@api.get("/equity")
 def get_equity(hours: int = 24 * 30):
     since = utcnow() - timedelta(hours=hours)
     with atomic() as s:
@@ -119,12 +129,12 @@ def get_equity(hours: int = 24 * 30):
             "points": [{"t": iso(r.timestamp), "equity": round(r.equity, 2)} for r in rows[::stride]]}
 
 
-@app.get("/api/consensus")
+@api.get("/consensus")
 def get_consensus(limit: int = 100):
     return [log_row(r) for r in eng().telemetry.recent(limit)]
 
 
-@app.get("/api/settings")
+@api.get("/settings")
 def get_settings_view():
     cfg = eng().cfg
     return {"execution_mode": cfg.execution_mode.value, "symbols": eng().symbols,
@@ -140,9 +150,21 @@ def get_settings_view():
             "strategy": {sym: st.model_dump() for sym, st in eng().strategy.items()}}
 
 
+@app.get("/api/health")
+def health():
+    """Sonda pública (sin token y sin datos sensibles) para Docker y el script de despliegue."""
+    return {"ok": engine is not None, "stream": bool(engine and engine.stream.healthy)}
+
+
+app.include_router(api)
+
+
 @app.websocket("/ws/telemetry")
 async def telemetry_ws(ws: WebSocket):
     await ws.accept()
+    if not websocket_authorized(ws):
+        await ws.close(code=WS_UNAUTHORIZED)
+        return
     e = eng()
     recent = e.telemetry.recent(50)
     last_id = recent[-1].id if recent else 0

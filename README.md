@@ -2,7 +2,7 @@
 
 Sistema de trading para futuros cripto de Binance en el que **5 agentes especializados** analizan el mercado en tiempo real y operan con **dinero falso sobre datos reales** (libro de órdenes L2, velas, funding), descontando comisiones, spread, slippage y funding exactos. El balance se reinvierte con interés compuesto.
 
-**Dashboard:** https://stivenrodriguezm.github.io/escuadron/. Es solo la interfaz: se conecta a tu motor local (`./start.sh`).
+**Dashboard:** https://stivenrodriguezm.github.io/escuadron/. Es solo la interfaz: se conecta a tu motor, ya sea local (`./start.sh`) o en tu servidor (con token de acceso).
 
 > ⚠️ Proyecto experimental. No es asesoría financiera. Por defecto opera en modo simulado (`PAPER_LIVE`). Lee la sección de resultados antes de pensar en dinero real.
 
@@ -53,6 +53,15 @@ cd escuadron
 La primera ejecución crea `.env` a partir de `.env.example`. Añade `GEMINI_API_KEY` (Google AI Studio) para activar los agentes LLM. También se puede levantar con `docker compose up -d`.
 
 En el dashboard pulsa **Iniciar** para que el escuadrón empiece a operar. **Ajustar Capital** cambia el dinero falso en cualquier momento. En **Calibración** puedes lanzar backtests headless y aplicar parámetros a un par en caliente.
+
+## Servidor 24/7 (Oracle Cloud Always Free)
+
+`docker-compose.prod.yml` levanta el motor y Caddy con HTTPS automático (dominio `sslip.io`, sin necesidad de comprar uno) y obliga a usar un token de acceso. La guía paso a paso está en [`deploy/ORACLE.md`](deploy/ORACLE.md):
+
+```bash
+./deploy/setup-oracle.sh                    # en el servidor: instala y arranca todo
+./deploy/migrate-data.sh CLAVE.key IP       # en el Mac: mueve el ledger al servidor
+```
 
 ## Arquitectura
 

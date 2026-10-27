@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     database_url: str = Field(default=f"sqlite:///{DATA_DIR / 'ledger.db'}", alias="DATABASE_URL")
     watch_interval_ms: int = Field(default=500, alias="WATCH_INTERVAL_MS")
     api_port: int = Field(default=8000, alias="API_PORT")
+    # Token de acceso a la API (obligatorio en un servidor público; vacío = sin auth, solo local)
+    api_token: str = Field(default="", alias="API_TOKEN")
+    require_api_token: bool = Field(default=False, alias="REQUIRE_API_TOKEN")
     # Orígenes que pueden usar la API: Vite en desarrollo y el dashboard publicado en GitHub Pages
     cors_origins: list[str] = Field(default=["http://localhost:5173", "https://stivenrodriguezm.github.io"],
                                     alias="CORS_ORIGINS")

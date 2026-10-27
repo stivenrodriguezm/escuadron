@@ -1,0 +1,41 @@
+# Producción (Oracle Cloud u otro VPS): motor + Caddy con HTTPS automático.
+#   sudo docker compose -f docker-compose.prod.yml up -d --build
+# Lee DOMAIN, API_TOKEN, GEMINI_API_KEY, … del archivo .env de esta carpeta.
+services:
+  app:
+    build: .
+    container_name: escuadron-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REQUIRE_API_TOKEN: "1"  # nunca exponer la API sin contraseña
+    expose:
+      - "8000"                # solo accesible para Caddy, no publicado en el host
+    volumes:
+      - ./data:/app/data      # ledger SQLite (WAL), caché parquet y estrategia calibrada
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  caddy:
+    image: caddy:2.8.4
+    container_name: escuadron-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en .env (p. ej. 129-146-10-20.sslip.io)}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # certificados TLS (Let's Encrypt)
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

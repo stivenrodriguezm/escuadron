@@ -30,8 +30,8 @@ export function ConnectScreen({ authRequired = false }: { authRequired?: boolean
   };
 
   return (
-    <div className="grid h-full place-items-center px-6">
-      <div className="panel w-full max-w-[520px] p-7">
+    <div className="pt-safe grid min-h-full place-items-center px-4 py-8">
+      <div className="panel w-full max-w-[520px] p-5 md:p-7">
         <div className="flex items-center gap-2.5">
           {authRequired ? <KeyRound size={17} className="text-accent" /> : <PlugZap size={17} className="text-warn" />}
           <h2 className="text-[15px] font-semibold">{authRequired ? "Acceso al motor" : "Motor no conectado"}</h2>
@@ -58,7 +58,7 @@ cd escuadron && ./start.sh`}
         <div className="mt-1.5 flex gap-2">
           <input className="input num" type="password" value={token} onChange={(e) => setTokenInput(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && connect()} />
-          <button className="btn btn-primary shrink-0" onClick={connect}>Conectar</button>
+          <button className="btn btn-primary shrink-0 justify-center" onClick={connect}>Conectar</button>
         </div>
         {isStaticHost() && (
           <p className="mt-2 text-[11.5px] text-ink-faint">

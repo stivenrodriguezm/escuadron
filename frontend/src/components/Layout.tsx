@@ -1,16 +1,24 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import {
   Bot, FlaskConical, LayoutDashboard, OctagonX, PanelLeftClose, PanelLeftOpen, Pause, Play, Settings2, Table2,
 } from "lucide-react";
 import type { ExecutionMode, ViewKey } from "../types";
 import { MODE_LABEL } from "./format";
+import { MobileTabBar, MobileTopBar } from "./MobileNav";
 
-const NAV: { key: ViewKey; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "agents", label: "Módulos de Agentes", icon: Bot },
-  { key: "ledger", label: "Posiciones y Ledger", icon: Table2 },
-  { key: "backtest", label: "Calibración (Backtest)", icon: FlaskConical },
-  { key: "settings", label: "Configuración & API", icon: Settings2 },
+export interface NavItem {
+  key: ViewKey;
+  label: string;
+  short: string;
+  icon: typeof LayoutDashboard;
+}
+
+const NAV: NavItem[] = [
+  { key: "dashboard", label: "Dashboard", short: "Inicio", icon: LayoutDashboard },
+  { key: "agents", label: "Módulos de Agentes", short: "Agentes", icon: Bot },
+  { key: "ledger", label: "Posiciones y Ledger", short: "Ledger", icon: Table2 },
+  { key: "backtest", label: "Calibración (Backtest)", short: "Backtest", icon: FlaskConical },
+  { key: "settings", label: "Configuración & API", short: "Ajustes", icon: Settings2 },
 ];
 
 const COLLAPSED_KEY = "escuadron.sidebarCollapsed";
@@ -61,9 +69,10 @@ export function Layout(props: LayoutProps) {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="min-h-full md:flex">
+      <MobileTopBar live={live} socketOpen={socketOpen} running={running} onToggle={onToggle} onKill={killSwitch} />
       <aside
-        className="fixed inset-y-0 left-0 z-20 flex flex-col border-r border-line bg-[#0B0C12] transition-[width] duration-200"
+        className="fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-line bg-[#0B0C12] transition-[width] duration-200 md:flex"
         style={{ width }}
       >
         <div className={`flex items-center py-5 ${collapsed ? "flex-col gap-3 px-0" : "gap-2.5 px-5"}`}>
@@ -128,21 +137,26 @@ export function Layout(props: LayoutProps) {
           </div>
         </div>
       </aside>
-      <main className="min-h-full flex-1 overflow-x-hidden transition-[margin] duration-200" style={{ marginLeft: width }}>
+      {/* --sb: ancho de la barra lateral; en móvil no hay margen y se deja sitio a las pestañas */}
+      <main
+        className="min-h-full min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] transition-[margin] duration-200 md:ml-[var(--sb)] md:pb-0"
+        style={{ "--sb": `${width}px` } as CSSProperties}
+      >
         {children}
       </main>
+      <MobileTabBar items={NAV} view={view} onNavigate={onNavigate} />
     </div>
   );
 }
 
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
   return (
-    <header className="flex items-end justify-between gap-4 border-b border-line px-8 py-5">
-      <div>
-        <h1 className="text-[17px] font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-[12.5px] text-ink-faint">{subtitle}</p>}
+    <header className="flex flex-col gap-3 border-b border-line px-4 py-4 md:flex-row md:items-end md:justify-between md:gap-4 md:px-8 md:py-5">
+      <div className="min-w-0">
+        <h1 className="text-[18px] font-semibold tracking-tight md:text-[17px]">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-[12.5px] leading-snug text-ink-faint">{subtitle}</p>}
       </div>
-      {right}
+      {right && <div className="min-w-0">{right}</div>}
     </header>
   );
 }

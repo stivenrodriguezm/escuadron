@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { fmtUsd } from "./format";
 
 export interface ChartPoint {
@@ -14,8 +15,14 @@ interface EquityChartProps {
 
 const tickTime = (ts: number) =>
   new Date(ts).toLocaleString("es-ES", { hour12: false, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const tickDay = (ts: number) => new Date(ts).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+// Eje Y en móvil: sin decimales ("$1,004"), y en miles solo a partir de $100k para no repetir etiquetas
+const wholeUsd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const compactUsd = (v: number) => (Math.abs(v) >= 100_000 ? `$${(v / 1000).toFixed(0)}k` : wholeUsd.format(v));
 
 export function EquityChart({ points, baseline, height = 260 }: EquityChartProps) {
+  const mobile = useIsMobile();
+  if (mobile) height = Math.min(height, 210);
   if (points.length < 2) {
     return (
       <div className="grid place-items-center text-[12.5px] text-ink-faint" style={{ height }}>
@@ -38,12 +45,12 @@ export function EquityChart({ points, baseline, height = 260 }: EquityChartProps
         </defs>
         <CartesianGrid stroke="#1E2230" strokeDasharray="0" vertical={false} />
         <XAxis
-          dataKey="ts" type="number" domain={["dataMin", "dataMax"]} scale="time" tickFormatter={tickTime}
-          stroke="#5D6474" fontSize={11} tickLine={false} axisLine={false} minTickGap={60}
+          dataKey="ts" type="number" domain={["dataMin", "dataMax"]} scale="time" tickFormatter={mobile ? tickDay : tickTime}
+          stroke="#5D6474" fontSize={mobile ? 10 : 11} tickLine={false} axisLine={false} minTickGap={mobile ? 40 : 60}
         />
         <YAxis
-          domain={[min - pad, max + pad]} stroke="#5D6474" fontSize={11} tickLine={false} axisLine={false}
-          width={78} tickFormatter={(v: number) => fmtUsd(v)}
+          domain={[min - pad, max + pad]} stroke="#5D6474" fontSize={mobile ? 10 : 11} tickLine={false} axisLine={false}
+          width={mobile ? 54 : 78} tickFormatter={(v: number) => (mobile ? compactUsd(v) : fmtUsd(v))}
         />
         <Tooltip
           contentStyle={{ background: "#11131A", border: "1px solid #1E2230", borderRadius: 8, fontSize: 12 }}
@@ -51,7 +58,8 @@ export function EquityChart({ points, baseline, height = 260 }: EquityChartProps
           formatter={(v: number) => [fmtUsd(v), "Balance compuesto"]}
         />
         {baseline !== undefined && (
-          <ReferenceLine y={baseline} stroke="#5D6474" strokeDasharray="4 4" label={{ value: "Capital inicial", fill: "#5D6474", fontSize: 10, position: "insideTopLeft" }} />
+          <ReferenceLine y={baseline} stroke="#5D6474" strokeDasharray="4 4"
+            label={mobile ? undefined : { value: "Capital inicial", fill: "#5D6474", fontSize: 10, position: "insideTopLeft" }} />
         )}
         <Area type="monotone" dataKey="equity" stroke="#10B981" strokeWidth={1.75} fill="url(#eqFill)" isAnimationActive={false} />
       </AreaChart>

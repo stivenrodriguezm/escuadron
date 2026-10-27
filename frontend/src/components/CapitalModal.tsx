@@ -33,11 +33,16 @@ export function CapitalModal({ current, onClose }: CapitalModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="panel w-[420px] p-6" onClick={(e) => e.stopPropagation()}>
+    // En móvil se muestra como hoja inferior (al alcance del pulgar); en escritorio, centrado
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-[2px] md:items-center" onClick={onClose}>
+      <div
+        className="panel pb-safe w-full rounded-b-none p-5 md:w-[420px] md:rounded-b-[10px] md:p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line md:hidden" />
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-semibold">Ajustar capital virtual</h2>
-          <button className="text-ink-faint hover:text-ink" onClick={onClose}><X size={16} /></button>
+          <button className="-m-2 p-2 text-ink-faint hover:text-ink" onClick={onClose} aria-label="Cerrar"><X size={18} /></button>
         </div>
         <p className="mt-1 text-[12.5px] text-ink-faint">Balance compuesto actual: <span className="num">{fmtUsd(current)}</span></p>
 
@@ -59,9 +64,9 @@ export function CapitalModal({ current, onClose }: CapitalModalProps) {
           ))}
         </div>
         {error && <p className="mt-3 text-[12px] text-loss">{error}</p>}
-        <div className="mt-6 flex justify-end gap-2">
-          <button className="btn" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" disabled={busy} onClick={submit}>{busy ? "Aplicando…" : "Aplicar"}</button>
+        <div className="mt-6 grid grid-cols-2 gap-2 pb-2 md:flex md:justify-end md:pb-0">
+          <button className="btn justify-center" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary justify-center" disabled={busy} onClick={submit}>{busy ? "Aplicando…" : "Aplicar"}</button>
         </div>
       </div>
     </div>

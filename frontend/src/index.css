@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { background: #090A0F; color: #E6E8EE; font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; background: #090A0F; color: #E6E8EE; font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 .num { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 .panel { background: #11131A; border: 1px solid #1E2230; border-radius: 10px; }
 .label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #5D6474; font-weight: 500; }
@@ -21,3 +21,14 @@ table.data th { text-align:left; font-weight:500; color:#5D6474; font-size:11px;
 table.data td { padding:8px 12px; border-bottom:1px solid #161924; color:#C9CDD6; }
 table.data tr:last-child td { border-bottom:none; }
 ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#1E2230; border-radius:4px; }
+
+/* ---------- Móvil ---------- */
+@media (max-width: 767px) {
+  /* iOS hace zoom al enfocar campos con letra < 16 px */
+  .input { font-size: 16px; padding: 10px 12px; }
+  .btn { min-height: 40px; padding: 8px 13px; }
+}
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

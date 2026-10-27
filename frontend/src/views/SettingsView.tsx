@@ -37,8 +37,8 @@ export function SettingsView() {
   return (
     <>
       <PageHeader title="Configuración & API" subtitle="Los valores se definen en el archivo .env del servidor y se aplican al reiniciar" />
-      <div className="space-y-5 px-8 py-6">
-        <section className="grid grid-cols-3 gap-3">
+      <div className="space-y-4 px-4 py-4 md:space-y-5 md:px-8 md:py-6">
+        <section className="grid gap-3 md:grid-cols-3">
           {MODES.map((m) => (
             <div key={m.key} className={`panel p-4 ${cfg.execution_mode === m.key ? "border-[#3A4258]" : "opacity-70"}`}>
               <div className="flex items-center justify-between">
@@ -50,14 +50,14 @@ export function SettingsView() {
             </div>
           ))}
         </section>
-        <section className="panel">
-          <table className="data">
-            <tbody>
-              {rows.map(([k, v]) => (
-                <tr key={k}><td className="w-[280px] text-ink-faint">{k}</td><td className="num">{v}</td></tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Lista clave/valor: en móvil la etiqueta va encima del valor */}
+        <section className="panel divide-y divide-[#161924]">
+          {rows.map(([k, v]) => (
+            <div key={k} className="grid gap-0.5 px-4 py-2.5 text-[12.5px] sm:grid-cols-[260px_1fr] sm:gap-4 md:px-5">
+              <div className="text-ink-faint">{k}</div>
+              <div className="num break-words text-[#C9CDD6]">{v}</div>
+            </div>
+          ))}
         </section>
       </div>
     </>

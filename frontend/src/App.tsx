@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConnectScreen } from "./components/ConnectScreen";
 import { Layout } from "./components/Layout";
 import { api } from "./hooks/api";
@@ -10,8 +10,24 @@ import { DashboardView } from "./views/DashboardView";
 import { LedgerView } from "./views/LedgerView";
 import { SettingsView } from "./views/SettingsView";
 
+const VIEWS: ViewKey[] = ["dashboard", "agents", "ledger", "backtest", "settings"];
+
+/** La vista vive en el hash (#agents…): el botón Atrás del móvil navega entre pestañas. */
+function viewFromHash(): ViewKey {
+  const hash = window.location.hash.slice(1);
+  return VIEWS.find((v) => v === hash) ?? "dashboard";
+}
+
 export default function App() {
-  const [view, setView] = useState<ViewKey>("dashboard");
+  const [view, setView] = useState<ViewKey>(viewFromHash);
+  useEffect(() => {
+    const onHash = () => setView(viewFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const navigate = (v: ViewKey) => {
+    if (v !== view) window.location.hash = v;
+  };
   const telemetry = useTelemetry();
   const { data, socketOpen, authRequired } = telemetry;
 
@@ -28,7 +44,7 @@ export default function App() {
   return (
     <Layout
       view={view}
-      onNavigate={setView}
+      onNavigate={navigate}
       streamConnected={data?.stream.connected ?? false}
       socketOpen={socketOpen}
       mode={data?.mode}

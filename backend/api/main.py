@@ -23,6 +23,7 @@ from backend.services import calibration
 from backend.services import capital_manager as cm
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # una línea por petición a Binance llenaría el log 24/7
 FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
 engine: TradingEngine | None = None
 

@@ -17,7 +17,8 @@ chmod 600 "$KEY"
 "${SSH[@]}" "test -f ~/escuadron/docker-compose.prod.yml" \
   || { echo "Primero instala el motor en el servidor (deploy/setup-oracle.sh)."; exit 1; }
 
-echo "▸ Deteniendo el motor local"
+echo "▸ Deteniendo el motor local (y su servicio permanente, si está instalado)"
+./start.sh uninstall-service >/dev/null 2>&1 || true
 ./start.sh stop || true
 
 echo "▸ Consolidando el WAL de SQLite y empaquetando data/"

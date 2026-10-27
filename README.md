@@ -54,6 +54,16 @@ La primera ejecución crea `.env` a partir de `.env.example`. Añade `GEMINI_API
 
 En el dashboard pulsa **Iniciar** para que el escuadrón empiece a operar. **Ajustar Capital** cambia el dinero falso en cualquier momento. En **Calibración** puedes lanzar backtests headless y aplicar parámetros a un par en caliente.
 
+## Mac como servidor permanente
+
+```bash
+./start.sh install-service     # arranca al iniciar sesión, se reinicia si falla e impide el reposo con cargador
+./start.sh status | stop | start
+./start.sh uninstall-service
+```
+
+Usa launchd. Los logs del servicio están en `~/Library/Logs/Escuadron/server.log`. macOS no permite que los servicios en segundo plano lean el Escritorio, Documentos ni Descargas, así que el proyecto debe estar fuera de esas carpetas (por ejemplo `~/escuadron`). Cerrar la tapa de un portátil lo duerme igualmente.
+
 ## Servidor 24/7 (Oracle Cloud Always Free)
 
 `docker-compose.prod.yml` levanta el motor y Caddy con HTTPS automático (dominio `sslip.io`, sin necesidad de comprar uno) y obliga a usar un token de acceso. La guía paso a paso está en [`deploy/ORACLE.md`](deploy/ORACLE.md):

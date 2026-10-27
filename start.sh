@@ -47,7 +47,15 @@ is_running() { [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; }
 # ---------- servicio launchd (macOS) ----------
 service_installed() { [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ]; }
 service_target() { echo "gui/$(id -u)/$LABEL"; }
-service_pid() { launchctl print "$(service_target)" 2>/dev/null | awk '/^\tpid = / {print $3; exit}'; }
+service_pid() { { launchctl print "$(service_target)" 2>/dev/null || true; } | awk '/^\tpid = / {print $3; exit}'; }
+service_stop() {
+  launchctl bootout "$(service_target)" 2>/dev/null || return 1
+  # bootout es asíncrono: espera a que launchd lo descargue del todo
+  for _ in $(seq 1 20); do
+    launchctl print "$(service_target)" >/dev/null 2>&1 || return 0
+    sleep 1
+  done
+}
 
 write_plist() {
   mkdir -p "$(dirname "$PLIST")" "$SERVICE_DIR" "$(dirname "$SERVICE_LOG")"
@@ -82,8 +90,19 @@ EOF
 }
 
 service_start() {
-  launchctl bootstrap "gui/$(id -u)" "$PLIST" 2>/dev/null || true
+  # bootout es asíncrono: reintenta la carga hasta que launchd haya terminado de descargarlo
+  for _ in $(seq 1 20); do
+    launchctl print "$(service_target)" >/dev/null 2>&1 && break
+    launchctl bootstrap "gui/$(id -u)" "$PLIST" 2>/dev/null && break
+    sleep 1
+  done
   launchctl kickstart "$(service_target)" 2>/dev/null || true
+  for _ in $(seq 1 15); do
+    [ -n "$(service_pid)" ] && return 0
+    sleep 1
+  done
+  echo "No se pudo arrancar el servicio. Revisa: $SERVICE_LOG" >&2
+  return 1
 }
 
 case "${1:-start}" in
@@ -103,7 +122,7 @@ case "${1:-start}" in
     ;;
   stop)
     if service_installed; then
-      launchctl bootout "$(service_target)" 2>/dev/null && echo "Servicio detenido (volverá a arrancar al iniciar sesión; para quitarlo: ./start.sh uninstall-service)." \
+      service_stop && echo "Servicio detenido (volverá a arrancar al iniciar sesión; para quitarlo: ./start.sh uninstall-service)." \
         || echo "El servicio no estaba en ejecución."
     elif is_running; then kill "$(cat "$PID_FILE")" && rm -f "$PID_FILE" && echo "Detenido."
     else echo "No está en ejecución."; fi
@@ -121,7 +140,7 @@ case "${1:-start}" in
     ensure_backend
     ensure_frontend
     if is_running; then kill "$(cat "$PID_FILE")" && rm -f "$PID_FILE"; sleep 2; fi  # evita dos motores en el puerto
-    launchctl bootout "$(service_target)" 2>/dev/null || true
+    service_stop || true
     write_plist
     service_start
     sleep 3
@@ -129,7 +148,7 @@ case "${1:-start}" in
     echo "Logs: $SERVICE_LOG"
     ;;
   uninstall-service)
-    launchctl bootout "$(service_target)" 2>/dev/null || true
+    service_stop || true
     rm -f "$PLIST" "$SERVICE_DIR/run.sh"
     echo "Servicio permanente eliminado."
     ;;

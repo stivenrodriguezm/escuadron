@@ -9,6 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PORT="${API_PORT:-8000}"
+HOST="${HOST:-127.0.0.1}"  # solo esta máquina: la API no tiene autenticación
 PID_FILE="logs/server.pid"
 LOG_FILE="logs/server.log"
 mkdir -p logs data
@@ -38,7 +39,7 @@ case "${1:-start}" in
     if is_running; then echo "Ya está en ejecución (PID $(cat "$PID_FILE")) → http://localhost:$PORT"; exit 0; fi
     ensure_backend
     ensure_frontend
-    nohup .venv/bin/uvicorn backend.api.main:app --host 0.0.0.0 --port "$PORT" >>"$LOG_FILE" 2>&1 &
+    nohup .venv/bin/uvicorn backend.api.main:app --host "$HOST" --port "$PORT" >>"$LOG_FILE" 2>&1 &
     echo $! >"$PID_FILE"
     echo "Sistema operando en segundo plano (PID $!) → http://localhost:$PORT  ·  logs: $LOG_FILE"
     ;;
